@@ -1,0 +1,41 @@
+/* Mobile-first responsive styles */
+html, body { margin: 0; padding: 0; height: 100%; font-family: system-ui, -apple-system, sans-serif; overflow: hidden; display: flex; flex-direction: column; }
+body > * { flex: 0 0 auto; }
+header { padding: 0.5rem; background: #2c3e50; color: white; text-align: center; }
+#map { flex: 1; border: none; width: 100%; height: 100%; }
+/* Mensajes: position fixed sobre el mapa, oculto cuando vacío */
+#mensajes { 
+  display: none; /* oculto por defecto */
+  position: fixed; 
+  bottom: 0; 
+  left: 0; 
+  right: 0; 
+  margin: auto; 
+  max-width: 90%; 
+  width: 90%; 
+  padding: 0.5rem 1rem; 
+  text-align: center; 
+  z-index: 1001; 
+  background: rgba(0,0,0,0.8); 
+  color: white; 
+  border-radius: 4px; 
+  font-size: 0.9rem;
+}
+#mensajes.visible { display: block; }
+@media (max-width: 640px) {
+  header { padding: 0.5rem; }
+  #mensajes { 
+    padding: 0.5rem 1rem; 
+    max-width: 95%; 
+    width: 95%;
+    font-size: 0.8rem;
+  }
+}
+@media (min-width: 641px) {
+  header { padding: 1rem; }
+  #mensajes { 
+    max-width: 300px; 
+    width: 300px;
+    font-size: 1rem;
+  }
+}
