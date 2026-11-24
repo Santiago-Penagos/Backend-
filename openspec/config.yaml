@@ -1,0 +1,102 @@
+schema: spec-driven
+
+context: |
+  # Proyecto: Mapa ciudadano de puntos de basura y escombros
+  Proyecto académico. App web responsive (computador, tablet y celular) donde
+  cualquier persona marca en un mapa un punto con basura, escombros u otros
+  residuos. Un administrador gestiona el estado de cada reporte.
+  Meta: MVP funcional en 1 semana. Idioma de la interfaz y de la documentación: español.
+
+  ## Principios obligatorios
+  - KISS: la solución más simple que funcione. Nada de librerías o patrones "por si acaso".
+  - SOLID: una responsabilidad por clase y módulo; depender de abstracciones (interfaces), no de implementaciones.
+  - Pensamiento computacional: cada propuesta debe mostrar la descomposición del problema,
+    los patrones reutilizados, la abstracción (qué datos importan y cuáles se ignoran) y el
+    algoritmo o flujo paso a paso.
+  - YAGNI: no implementar nada que no esté en la spec del cambio actual.
+
+  ## Arquitectura: 3 capas separadas en 3 carpetas
+  /frontend  -> Presentación. HTML + CSS + JavaScript puro (sin framework) + Leaflet + OpenStreetMap.
+               Solo habla con la API por HTTP/JSON (fetch). No contiene reglas de negocio.
+               Diseño mobile-first y responsive.
+  /api       -> Capa HTTP con FastAPI. Rutas, controladores, esquemas Pydantic de entrada/salida,
+               autenticación y manejo de errores HTTP. NO contiene lógica de negocio ni SQL:
+               solo recibe, valida, llama a un servicio del backend y responde.
+  /backend   -> Núcleo de la aplicación en Python puro. NO importa FastAPI ni nada de HTTP.
+               - domain/: entidades y reglas (ej. Reporte, EstadoReporte, TipoResiduo).
+               - services/: casos de uso (registrar reporte, listar, cambiar estado...).
+               - repositories/: interfaces abstractas (ABC) + implementación con SQLAlchemy.
+               - db/: conexión y modelos ORM.
+  Regla de dependencias: frontend -> api -> backend/services -> backend/repositories (interfaz).
+  Nunca al revés. Los servicios reciben el repositorio por inyección de dependencias.
+
+  ## Stack
+  - Python 3.11+, FastAPI, Pydantic v2, SQLAlchemy 2.x.
+  - Base de datos definida por la variable DATABASE_URL: SQLite en desarrollo local,
+    PostgreSQL (Render Postgres) en producción. El mismo código sirve para ambas.
+  - Autenticación del administrador: usuario y contraseña con hash (bcrypt/passlib) + token JWT.
+    El admin inicial se crea desde variables de entorno (.env). No hay registro público de admins.
+  - Fotos: solo JPG/PNG/WEBP, máximo 5 MB al subir. Con Pillow se elimina la metadata EXIF
+    (privacidad), se redimensiona a máximo 1280 px y se comprime a JPEG.
+    NUNCA se guardan en el disco del servidor (Render lo borra en cada reinicio).
+    Se guardan en la base de datos (columna binaria) detrás de una interfaz PhotoStorage
+    en backend/repositories, para poder cambiar a otro almacenamiento sin tocar los servicios.
+  - Pruebas: pytest. Los servicios del backend se prueban con un repositorio en memoria (fake).
+  - Mapa: Leaflet + teselas de OpenStreetMap (gratis, sin clave de API).
+  - La API devuelve los reportes del mapa en formato GeoJSON (FeatureCollection).
+
+  ## Modelo de dominio (abstracción)
+  Reporte:
+    id, latitud, longitud, tipo (basura | escombros | llantas | otro),
+    descripcion (máx. 300 caracteres), foto_url (opcional),
+    estado (reportado | en_atencion | limpiado), creado_en, actualizado_en.
+  Administrador:
+    id, usuario, password_hash.
+
+  ## Roles
+  - Ciudadano (sin cuenta): ve el mapa, crea reportes y ve el detalle. No edita ni borra.
+  - Administrador (con login): cambia el estado de los reportes y elimina reportes falsos o spam.
+
+  ## Despliegue en Render (plan gratuito)
+  - Frontend: Render Static Site (carpeta frontend/). La URL de la API se configura en frontend/config.js.
+  - API + backend: Render Web Service con uvicorn (la API importa el backend como paquete Python).
+  - Base de datos: Render Postgres gratuito.
+  - Todo definido en un render.yaml (Blueprint) en la raíz del repositorio; deploy automático al hacer push a main.
+  - Restricciones del plan gratuito que el diseño debe respetar:
+    * El disco del Web Service es efímero: nada que deba persistir se guarda en archivos locales.
+    * El Web Service se duerme tras 15 minutos sin tráfico; el frontend debe mostrar un mensaje
+      de "Cargando..." mientras la API despierta.
+    * CORS: la API solo acepta el origen del Static Site (variable FRONTEND_URL) y localhost en desarrollo.
+  - Las tablas se crean al arrancar la API si no existen (sin herramientas de migración, por KISS).
+
+  ## Equipo y contrato
+  - Dos personas: una se encarga de frontend/ y otra de api/ + backend/. Cada cambio de OpenSpec
+    toca solo la carpeta de su responsable y se nombra con prefijo: front-... o back-...
+  - El contrato de la API está en docs/api-contract.md y es la única fuente de verdad entre ambos.
+    Ningún cambio puede contradecirlo sin actualizarlo primero.
+  - Mientras la API real no exista, el frontend trabaja con datos simulados (mock) que respetan
+    exactamente el contrato. Se cambia entre mock y API real con USE_MOCK en frontend/config.js.
+
+  ## Convenciones
+  - API REST bajo el prefijo /api/v1. Respuestas JSON. Errores con el formato {"detail": "..."}.
+  - Código (variables, funciones, clases) en inglés; textos de la interfaz, specs y documentación en español.
+  - Tipado con type hints en todo el código Python. Funciones cortas y nombres descriptivos.
+  - Configuración por variables de entorno (.env); nunca subir secretos al repositorio.
+  - Cada carpeta (frontend, api, backend) con su propio README corto.
+
+rules:
+  proposal:
+    - Incluir una sección "Pensamiento computacional" con descomposición, patrones, abstracción y algoritmo.
+    - Declarar explícitamente qué queda fuera del alcance de este cambio.
+    - Mantener el cambio pequeño, implementable en máximo un día de trabajo.
+  specs:
+    - Escribir los escenarios en formato Dado / Cuando / Entonces.
+    - Incluir casos de error (datos inválidos, coordenadas fuera de rango, falta de permisos).
+  design:
+    - Indicar qué archivos se tocan en cada capa (frontend, api, backend) y por qué.
+    - Justificar cómo se cumple cada principio SOLID que aplique y verificar que se respeta la regla de dependencias entre capas.
+    - Preferir siempre la alternativa más simple (KISS) y mencionar la alternativa descartada.
+  tasks:
+    - Ordenar las tareas de abajo hacia arriba - backend (dominio, repositorio, servicio) y luego api y luego frontend.
+    - Cada servicio nuevo del backend debe tener su prueba con pytest.
+    - Terminar con una tarea de verificación manual en el navegador, en escritorio y en celular.
