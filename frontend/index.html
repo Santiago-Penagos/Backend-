@@ -13,6 +13,44 @@
   </header>
   <div id="map"></div>
   <section id="mensajes"></section>
+
+  <button id="btn-ubicacion" class="btn-ubicacion" type="button" aria-label="Usar mi ubicación">📍 Usar mi ubicación</button>
+
+  <div id="modal-reporte" class="modal oculto" role="dialog" aria-modal="true" aria-labelledby="modal-titulo">
+    <div class="modal-contenido">
+      <h2 id="modal-titulo">Crear reporte</h2>
+      <form id="form-reporte" novalidate>
+        <input type="hidden" id="latitud" name="latitud">
+        <input type="hidden" id="longitud" name="longitud">
+        <p id="coordenadas" class="coordenadas"></p>
+        <span class="error-campo" id="error-latitud"></span>
+        <span class="error-campo" id="error-longitud"></span>
+
+        <label for="tipo">Tipo</label>
+        <select id="tipo" name="tipo">
+          <option value="">Selecciona un tipo</option>
+          <option value="basura">Basura</option>
+          <option value="escombros">Escombros</option>
+          <option value="llantas">Llantas</option>
+          <option value="otro">Otro</option>
+        </select>
+        <span class="error-campo" id="error-tipo"></span>
+
+        <label for="descripcion">Descripción</label>
+        <textarea id="descripcion" name="descripcion" maxlength="300" rows="4"></textarea>
+        <div class="contador"><span id="contador-descripcion">0</span>/300</div>
+        <span class="error-campo" id="error-descripcion"></span>
+
+        <span class="error-campo error-general" id="error-general"></span>
+
+        <div class="acciones">
+          <button type="button" id="btn-cancelar">Cancelar</button>
+          <button type="submit" id="btn-crear">Crear reporte</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script type="module" src="main.js"></script>
 </body>
