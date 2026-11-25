@@ -71,3 +71,46 @@ export const getReportes = async () => {
     features: reportes
   };
 };
+
+export const crearReporte = async (formData) => {
+  // Simulate network delay of 500ms
+  await new Promise(resolve => setTimeout(resolve, 500));
+
+  const latitud = Number(formData.get('latitud'));
+  const longitud = Number(formData.get('longitud'));
+  const tipo = formData.get('tipo');
+  const descripcion = formData.get('descripcion');
+
+  const nuevoId = reportes.reduce(
+    (max, feature) => Math.max(max, feature.properties.id),
+    0
+  ) + 1;
+  const creadoEn = new Date().toISOString();
+
+  const reporte = {
+    id: nuevoId,
+    latitud,
+    longitud,
+    tipo,
+    descripcion,
+    estado: 'reportado',
+    foto_url: null,
+    creado_en: creadoEn,
+    actualizado_en: creadoEn
+  };
+
+  reportes.push({
+    type: 'Feature',
+    geometry: { type: 'Point', coordinates: [longitud, latitud] },
+    properties: {
+      id: reporte.id,
+      tipo: reporte.tipo,
+      descripcion: reporte.descripcion,
+      estado: reporte.estado,
+      tiene_foto: false,
+      creado_en: reporte.creado_en
+    }
+  });
+
+  return reporte;
+};

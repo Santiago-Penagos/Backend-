@@ -1,0 +1,54 @@
+﻿# Design
+
+## Context
+
+Proyecto frontend en JavaScript puro con ES modules. Arquitectura de 3 capas: `/frontend` (presentaciÃ³n), `/api` (capa HTTP), `/backend` (nÃºcleo Python). Regla de dependencias: frontend -> api -> backend/services -> backend/repositories (interfaz). `docs/api-contract.md` es la Ãºnica fuente de verdad entre frontend y backend. `USE_MOCK` en `frontend/config.js` permite swapear mock/real sin tocar el resto.
+
+## Goals / Non-Goals
+
+**Goals:**
+- Modal bottom sheet `ui/formulario.js` con formulario para crear reportes, validaciÃ³n pura `validarReporte(datos)` que retorna `{valido, errores}`, errores por campo.
+- `mapView.js` con `onMapClick(callback)` que entrega `{lat, lng}`, `agregarReporte(reporte)` y `construirPopup(reporte)` Ãºnica (DRY).
+- `api/mockApi.crearReporte(datos)` que guarda en memoria y devuelve objeto contrato punto 3.
+- `api/reportesApi.crearReporte(formData)` con `POST /reportes` y `multipart/form-data`.
+- `main.js`Orquesta: geolocation al pulsar botÃ³n "UbicaciÃ³n", modal, map events y API call.
+- Marker temporal `L.circleMarker naranja` que dura hasta enviar o cancelar.
+- Si el usuario toca otro punto, el marcador se mueve y se actualizan coordenadas.
+- GeolocalizaciÃ³n solo al pulsar botÃ³n; si falla/niega: mensaje + usuario toca mapa; NUNCA marcador por defecto en BogotÃ¡.
+
+**Non-Goals:**
+- Subida de fotos de reportes.
+- Login administrador, cambio de estado, eliminaciÃ³n de reportes.
+- Cualquier librerÃ­a framework (React, Vue, Svelte); vanilla JS solo.
+- GeolocalizaciÃ³n automÃ¡tica al cargar la pÃ¡gina.
+
+## Decisions
+
+- **validarReporte(datos) pura**: funciÃ³n que solo valida y retorna `{valido, errores}`, sin side effects. Ubicada en `ui/formulario.js`. Cumple Liskov: mock y reportesApi son intercambiables por `USE_MOCK`.
+- **onMapClick(callback)**: entrega `{lat, lng}` (orden Leaflet), sin conversiÃ³n a `[lng, lat]` para el formulario. El formulario envÃ­a latitud y longitud como campos separados.
+- **construirPopup(reporte)**: funciÃ³n Ãºnica en `mapView.js`, genera contenido desde `{id, tipo, descripcion, estado}`, reutilizable para reportes existentes y nuevos (DRY).
+- **Marker temporal `L.circleMarker naranja`**: sin imÃ¡genes, solo style CSS. Dura hasta submit o Cancelar. Si usuario clicka otro punto, el marcador se mueve.
+- **GeolocalizaciÃ³n solo al pulsar botÃ³n**: Nunca en page load. Si falla/niega: mensaje + usuario toca mapa. NUNCA marcador por defecto en BogotÃ¡.
+- **Modal bottom sheet**: En celular sale desde abajo; en desktop es un modal centered.
+- **Formulario se cierra completamente tras Ã©xito**: No se resetea para otro reporte automÃ¡ticamente; usuario debe tocar "Nuevo reporte" si quiere otro.
+- **El botÃ³n "Cancelar"**: Cierra modal y quita marcador temporal.
+
+**Alternativas consideradas y desechadas:**
+- Usar `import` condicional en JS (no es sintÃ¡cticamente vÃ¡lido) â†’ SoluciÃ³n: `api/index.js` con switch por `USE_MOCK`.
+- GeolocalizaciÃ³n automÃ¡tica al cargar pÃ¡gina â†’ Desechada por violar principio de sorpresa y permisos de usuario.
+- Formulario que se resetea automÃ¡ticamente tras Ã©xito â†’ Desechado por confusiÃ³n de usuario; preferir cierre completo + botÃ³n "Nuevo reporte" explÃ­cito.
+
+## Risks / Trade-offs
+
+- [Risk] Si `validarReporte` tiene bug, ambos (mock y real) fallan igual. Mitigation: pruebas unitarias sencillas, funciÃ³n pura sin side effects.
+- [Risk] GeolocalizaciÃ³n puede fallar en entornos sin GPS (tablets sin GPS). Mitigation: fallback a BogotÃ¡ coordinates, mensaje claro.
+- [Trade-off] Marker temporal con `L.circleMarker` vs `L.marker` con icono personalizado. Elegido `circleMarker` por ser mÃ¡s simple y no requerir imÃ¡genes (KISS).
+- [Trade-off] Formulario que se cierra completamente tras Ã©xito vs. reseteo para otro reporte. Elegido cierre completo por claridad de usuario.
+
+## Migration Plan
+
+No aplica - es un cambio verde (nueva funcionalidad). Los archivos existentes en `frontend/` serÃ¡n modificados segÃºn este diseÃ±o. No hay rollback necesario.
+
+## Open Questions
+
+None. All design decisions are resolved and documented above.
